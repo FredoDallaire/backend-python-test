@@ -4,7 +4,7 @@
 <div class="col-md-4 col-md-offset-4">
     <h1>Todo:</h1>
     <table class="table table-striped">
-        <th>#</th><th>User</th><th>Description</th><th>Completed</th><th></th>
+        <th>#</th><th>User</th><th>Description</th><th>Completed</th><th>Format</th><th></th>
         <tr>
             <td>{{ todo.id }}</td>
             <td>{{ todo.user_id }}</td>
@@ -20,6 +20,9 @@
 		<button type="submit" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-unchecked" style="color:grey"></span></button>
 		{% endif %}
 	      </form>
+	    </td>
+	    <td>
+	      <a href="{{ url_for('view_json', id=todo.id) }}">JSON</a>
 	    </td>
             <td>
 	      <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='delete') }}">

@@ -1,3 +1,5 @@
+import json
+import collections
 from alayatodo import app
 from flask import (
     g,
@@ -47,7 +49,6 @@ def logout():
 def todo(id):
     cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
     todo = cur.fetchone()
-    print "todo"
     return render_template('todo.html', todo=todo)
 
 
@@ -73,7 +74,6 @@ def todos_POST():
             % (session['user']['id'], request.form.get('description', ''), 0)
             )
     g.db.commit()
-    print "todos"
     return redirect('/todo')
 
 """
@@ -86,7 +86,7 @@ using the settings option.
 def todo_modify(id):
     if not session.get('logged_in'):
         return redirect('/login')
-    """ Change status to complete or incomplete """
+    # Change status to complete or incomplete
     if request.args.get('settings') == 'change_status':
         cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
         td = cur.fetchall()
@@ -101,3 +101,15 @@ def todo_modify(id):
         g.db.execute("DELETE FROM todos WHERE id ='%s'" % id)
     g.db.commit()
     return redirect('/todo')
+
+@app.route('/todo/<id>/json', methods=['GET'])
+def view_json(id):
+    if not session.get('logged_in'):
+        return redirect('/login')
+    
+    todo = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id).fetchone()
+    data = collections.OrderedDict([('id',todo[0]), ('user_id',todo[1]), ('description',todo[2]), ('status_completed', todo[3])])
+    print data
+    json_todo = json.dumps(data)
+    print json_todo
+    return render_template('json.html', json_todo=json_todo)

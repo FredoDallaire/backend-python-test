@@ -4,33 +4,36 @@
 <div class="col-md-4 col-md-offset-4">
     <h1>Todo List:</h1>
     <table class="table table-striped">
-        <th>#</th><th>User</th><th>Description</th><th>Completed</th><th></th>
+        <th>#</th><th>User</th><th>Description</th><th>Completed</th><th>Format</th><th></th>
         {% for todo in todos %}
             <tr>
-                <td>{{ todo.id }}</td>
-                <td>{{ todo.user_id }}</td>
-                <td>
-                    <a href="{{ url_for('todo', id=todo.id) }}">
-                       {{ todo.description }}
-                    </a>
-                </td>
-                <td>
-                    <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='change_status') }}">
-                       {% if todo.completed_status %}
-                          <button type="submit" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-check" style="color:green"></span></button>
-                       {% endif %}
-                    </form>
-                    <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='change_status') }}">
-                       {% if not todo.completed_status %}
-                          <button type="submit" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-unchecked" style="color:grey"></span></button>
-                       {% endif %}
-                    </form>
-                </td>
-                <td>
-                    <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='delete') }}">
-                       <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove glyphicon-white"></span></button>
-                    </form>
-                </td>
+              <td>{{ todo.id }}</td>
+              <td>{{ todo.user_id }}</td>
+              <td>
+                <a href="{{ url_for('todo', id=todo.id) }}">
+                  {{ todo.description }}
+                </a>
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='change_status') }}">
+                  {% if todo.completed_status %}
+                  <button type="submit" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-check" style="color:green"></span></button>
+                  {% endif %}
+                </form>
+                <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='change_status') }}">
+                  {% if not todo.completed_status %}
+                  <button type="submit" class="btn btn-xs btn-default"><span class="glyphicon glyphicon-unchecked" style="color:grey"></span></button>
+                  {% endif %}
+                </form>
+              </td>
+	      <td>
+		<a href="{{ url_for('view_json', id=todo.id) }}">JSON</a>
+	      </td>
+              <td>
+                <form method="post" action="{{ url_for('todo_modify', id=todo.id, settings='delete') }}">
+                  <button type="submit" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-remove glyphicon-white"></span></button>
+                </form>
+              </td>
             </tr>
             {% endfor %}
         <tr>
