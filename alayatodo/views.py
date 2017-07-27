@@ -6,9 +6,9 @@ from flask import (
     redirect,
     render_template,
     request,
-    session
+    session,
+    flash
     )
-
 
 @app.route('/')
 def home():
@@ -73,7 +73,11 @@ def todos_POST():
             # new tasks added with incomplete status by default
             % (session['user']['id'], request.form.get('description', ''), 0)
             )
+        message_str = 'Task \"' + request.form.get('description', '') + '\" has been successfully added.'
+    else:
+        message_str= 'You must enter a description in order to add a task.'
     g.db.commit()
+    flash(message_str)
     return redirect('/todo')
 
 """
@@ -86,20 +90,24 @@ using the settings option.
 def todo_modify(id):
     if not session.get('logged_in'):
         return redirect('/login')
+    
+    task = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id).fetchone()
     # Change status to complete or incomplete
     if request.args.get('settings') == 'change_status':
-        cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
-        td = cur.fetchall()
         # Change status from incomplete to complete
-        if td[0][3] == 0:
+        if task[3] == 0:
             g.db.execute("UPDATE todos SET completed_status = 1 WHERE id ='%s'" % id)
+            message_str = 'Status of task \"' + task[2] + '\" has been set to complete.'
         # Change status from complete to incomplete
-        elif td[0][3] == 1:
+        elif task[3] == 1:
             g.db.execute("UPDATE todos SET completed_status = 0 WHERE id ='%s'" % id)
+            message_str = 'Status of task \"' + task[2] + '\" has been set to incomplete.'
     # Delete an element
     elif request.args.get('settings') == 'delete':
         g.db.execute("DELETE FROM todos WHERE id ='%s'" % id)
+        message_str = 'Task \"' + task[2] + '\" has been successfully removed.'
     g.db.commit()
+    flash(message_str)
     return redirect('/todo')
 
 @app.route('/todo/<id>/json', methods=['GET'])
@@ -109,7 +117,5 @@ def view_json(id):
     
     todo = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id).fetchone()
     data = collections.OrderedDict([('id',todo[0]), ('user_id',todo[1]), ('description',todo[2]), ('status_completed', todo[3])])
-    print data
     json_todo = json.dumps(data)
-    print json_todo
     return render_template('json.html', json_todo=json_todo)
