@@ -26,8 +26,8 @@ def _run_sql(filename):
 if __name__ == '__main__':
     args = docopt(__doc__)
     if args['initdb']:
-        _run_sql('resources/database.sql')
-        _run_sql('resources/fixtures.sql')
+        _run_sql('resources/database_completeTodo.sql')
+        _run_sql('resources/fixtures_completeTodo.sql')
         print "AlayaTodo: Database initialized."
     else:
         app.run(use_reloader=True)

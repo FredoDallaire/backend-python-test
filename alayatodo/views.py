@@ -47,6 +47,7 @@ def logout():
 def todo(id):
     cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
     todo = cur.fetchone()
+    print "todo"
     return render_template('todo.html', todo=todo)
 
 
@@ -67,17 +68,36 @@ def todos_POST():
         return redirect('/login')
     if request.form.get('description', '') != '':
         g.db.execute(
-            "INSERT INTO todos (user_id, description) VALUES ('%s', '%s')"
-            % (session['user']['id'], request.form.get('description', ''))
+            "INSERT INTO todos (user_id, description, completed_status) VALUES ('%s', '%s', '%s')"
+            # new tasks added with incomplete status by default
+            % (session['user']['id'], request.form.get('description', ''), 0)
             )
     g.db.commit()
+    print "todos"
     return redirect('/todo')
 
-
+"""
+Actions of deleting an element or changing its status
+are built within the same function. Each action is selected
+using the settings option.
+"""
+@app.route('/todo', methods=['POST'])
 @app.route('/todo/<id>', methods=['POST'])
-def todo_delete(id):
+def todo_modify(id):
     if not session.get('logged_in'):
         return redirect('/login')
-    g.db.execute("DELETE FROM todos WHERE id ='%s'" % id)
+    """ Change status to complete or incomplete """
+    if request.args.get('settings') == 'change_status':
+        cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
+        td = cur.fetchall()
+        # Change status from incomplete to complete
+        if td[0][3] == 0:
+            g.db.execute("UPDATE todos SET completed_status = 1 WHERE id ='%s'" % id)
+        # Change status from complete to incomplete
+        elif td[0][3] == 1:
+            g.db.execute("UPDATE todos SET completed_status = 0 WHERE id ='%s'" % id)
+    # Delete an element
+    elif request.args.get('settings') == 'delete':
+        g.db.execute("DELETE FROM todos WHERE id ='%s'" % id)
     g.db.commit()
     return redirect('/todo')
