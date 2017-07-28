@@ -3,6 +3,8 @@
 {% block content %}
 <div class="col-md-4 col-md-offset-4">
     <h1>Todo List:</h1>
+    {{ pagination.info }}
+    {{ pagination.links }}
     <table class="table table-striped">
         <th>#</th><th>User</th><th>Description</th><th>Completed</th><th>Format</th><th></th>
         {% for todo in todos %}

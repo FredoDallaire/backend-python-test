@@ -1,6 +1,7 @@
 import json
 import collections
 from alayatodo import app
+from flask_paginate import Pagination, get_page_args
 from flask import (
     g,
     redirect,
@@ -52,14 +53,37 @@ def todo(id):
     return render_template('todo.html', todo=todo)
 
 
-@app.route('/todo', methods=['GET'])
-@app.route('/todo/', methods=['GET'])
-def todos():
+@app.route('/todo',  defaults={'page': 1}, methods=['GET'])
+@app.route('/todo/', defaults={'page': 1}, methods=['GET'])
+@app.route('/todo/page/<int:page>',  methods=['GET'])
+@app.route('/todo/page/<int:page>/', methods=['GET'])
+def todos(page):
     if not session.get('logged_in'):
         return redirect('/login')
     cur = g.db.execute("SELECT * FROM todos")
     todos = cur.fetchall()
-    return render_template('todos.html', todos=todos)
+    total = len(todos)
+    print type(todos)
+
+    page, per_page, offset = get_page_args()
+    # Reset per_page and offset values
+    per_page = 3
+    offset = (page - 1) * per_page
+    pagination = Pagination(page=page,
+                            per_page=per_page,
+                            total=total,
+                            record_name='todos',
+                            format_total=True,
+                            format_number=True,
+                            css_framework='bootstrap3',
+                            )
+
+    """
+    Number of elements of todos is limited to per_page value.
+    Render elements starting at the index with offset value.
+    """
+    return render_template('todos.html', todos=todos[offset:offset+per_page],
+                           pagination=pagination, page=page, per_page=per_page)
 
 
 @app.route('/todo', methods=['POST'])
