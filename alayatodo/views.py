@@ -43,16 +43,25 @@ def login_POST():
 def logout():
     session.pop('logged_in', None)
     session.pop('user', None)
-    return redirect('/')
+    return redirect('/login')
 
 
 @app.route('/todo/<id>', methods=['GET'])
 def todo(id):
     if not session.get('logged_in'):
         return redirect('/login')
-    cur = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id)
+    """
+    User cannot see individual todo from ther user.
+    If an attempt is made to view '/todo/<id>' belongning to another
+    user, they are brought back to '/todo' with a flash message.
+    """
+    cur = g.db.execute("SELECT * FROM todos WHERE id = '%s' AND user_id= '%s'" % (id, session['user']['id']))
     todo = cur.fetchone()
-    return render_template('todo.html', todo=todo)
+    if todo != None:
+        return render_template('todo.html', todo=todo)
+    else:
+        flash('Cannot view tasks from other users')
+        return redirect('/todo')
 
 
 @app.route('/todo',  defaults={'page': 1}, methods=['GET'])
@@ -62,10 +71,10 @@ def todo(id):
 def todos(page):
     if not session.get('logged_in'):
         return redirect('/login')
-    cur = g.db.execute("SELECT * FROM todos")
+    # User cannot see todo lists from other user
+    cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s'" % session['user']['id'])
     todos = cur.fetchall()
     total = len(todos)
-    print type(todos)
 
     page, per_page, offset = get_page_args()
     # Reset per_page and offset values
@@ -88,7 +97,7 @@ def todos(page):
                            pagination=pagination, page=page, per_page=per_page)
 
 
-@app.route('/todo', methods=['POST'])
+@app.route('/todo',  methods=['POST'])
 @app.route('/todo/', methods=['POST'])
 def todos_POST():
     if not session.get('logged_in'):
