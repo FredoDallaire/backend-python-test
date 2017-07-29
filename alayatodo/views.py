@@ -10,6 +10,8 @@ from flask import (
     session,
     flash
     )
+from alayatodo import models
+from models import User, Todo
 
 @app.route('/')
 def home():
@@ -28,11 +30,10 @@ def login_POST():
     username = request.form.get('username')
     password = request.form.get('password')
 
-    sql = "SELECT * FROM users WHERE username = '%s' AND password = '%s'";
-    cur = g.db.execute(sql % (username, password))
-    user = cur.fetchone()
+    ses = models.loadSession()
+    user = ses.query(User).filter(User.username==username).filter(User.password==password).all()
     if user:
-        session['user'] = dict(user)
+        session['user'] = {'username':user[0].username, 'password':user[0].password, 'id':user[0].id}
         session['logged_in'] = True
         return redirect('/todo')
 
@@ -55,10 +56,10 @@ def todo(id):
     If an attempt is made to view '/todo/<id>' belongning to another
     user, they are brought back to '/todo' with a flash message.
     """
-    cur = g.db.execute("SELECT * FROM todos WHERE id = '%s' AND user_id= '%s'" % (id, session['user']['id']))
-    todo = cur.fetchone()
-    if todo != None:
-        return render_template('todo.html', todo=todo)
+    ses = models.loadSession()
+    todo = ses.query(Todo).filter(Todo.id==id).filter(Todo.user_id==session['user']['id']).order_by(Todo.id).all()
+    if todo:
+        return render_template('todo.html', todo=todo[0])
     else:
         flash('Cannot view tasks from other users')
         return redirect('/todo')
@@ -72,10 +73,10 @@ def todos(page):
     if not session.get('logged_in'):
         return redirect('/login')
     # User cannot see todo lists from other user
-    cur = g.db.execute("SELECT * FROM todos WHERE user_id = '%s'" % session['user']['id'])
-    todos = cur.fetchall()
-    total = len(todos)
+    ses = models.loadSession()
+    todos = ses.query(Todo).filter(Todo.user_id==session['user']['id']).order_by(Todo.id).all()
 
+    total = len(todos)
     page, per_page, offset = get_page_args()
     # Reset per_page and offset values
     per_page = 3
@@ -103,15 +104,13 @@ def todos_POST():
     if not session.get('logged_in'):
         return redirect('/login')
     if request.form.get('description', '') != '':
-        g.db.execute(
-            "INSERT INTO todos (user_id, description, completed_status) VALUES ('%s', '%s', '%s')"
-            # new tasks added with incomplete status by default
-            % (session['user']['id'], request.form.get('description', ''), 0)
-            )
+        ses = models.loadSession()
+        # new tasks added with incomplete status by default
+        ses.add(Todo(user_id = session['user']['id'], description = request.form.get('description', ''), completed_status = 0))
+        ses.commit()
         message_str = 'Task \"' + request.form.get('description', '') + '\" has been successfully added.'
     else:
         message_str= 'You must enter a description in order to add a task.'
-    g.db.commit()
     flash(message_str)
     return redirect('/todo')
 
@@ -126,22 +125,27 @@ def todo_modify(id):
     if not session.get('logged_in'):
         return redirect('/login')
     
-    task = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id).fetchone()
+    ses = models.loadSession()
+    task = ses.query(Todo).filter(Todo.id==id).all()[0]
     # Change status to complete or incomplete
     if request.args.get('settings') == 'change_status':
         # Change status from incomplete to complete
-        if task[3] == 0:
-            g.db.execute("UPDATE todos SET completed_status = 1 WHERE id ='%s'" % id)
-            message_str = 'Status of task \"' + task[2] + '\" has been set to complete.'
+        if task.completed_status == 0:
+            todo = ses.query(Todo).filter(Todo.id==id).all()[0]
+            todo.completed_status=1
+            ses.commit()
+            message_str = 'Status of task \"' + task.description + '\" has been set to complete.'
         # Change status from complete to incomplete
-        elif task[3] == 1:
-            g.db.execute("UPDATE todos SET completed_status = 0 WHERE id ='%s'" % id)
-            message_str = 'Status of task \"' + task[2] + '\" has been set to incomplete.'
+        elif task.completed_status == 1:
+            todo = ses.query(Todo).filter(Todo.id==id).all()[0]
+            todo.completed_status=0
+            ses.commit()
+            message_str = 'Status of task \"' + task.description + '\" has been set to incomplete.'
     # Delete an element
     elif request.args.get('settings') == 'delete':
-        g.db.execute("DELETE FROM todos WHERE id ='%s'" % id)
-        message_str = 'Task \"' + task[2] + '\" has been successfully removed.'
-    g.db.commit()
+        ses.delete(ses.query(Todo).filter(Todo.id==id).all()[0])
+        ses.commit()
+        message_str = 'Task \"' + task.description + '\" has been successfully removed.'
     flash(message_str)
     return redirect('/todo')
 
@@ -150,7 +154,8 @@ def view_json(id):
     if not session.get('logged_in'):
         return redirect('/login')
     
-    todo = g.db.execute("SELECT * FROM todos WHERE id ='%s'" % id).fetchone()
-    data = collections.OrderedDict([('id',todo[0]), ('user_id',todo[1]), ('description',todo[2]), ('status_completed', todo[3])])
+    ses = models.loadSession()
+    todo = ses.query(Todo).filter(Todo.id==id).all()[0]
+    data = collections.OrderedDict([('id',todo.id), ('user_id',todo.user_id), ('description',todo.description), ('completed_status', todo.completed_status)])
     json_todo = json.dumps(data)
     return render_template('json.html', json_todo=json_todo)

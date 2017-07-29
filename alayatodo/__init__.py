@@ -2,7 +2,7 @@ from flask import Flask, g
 import sqlite3
 
 # configuration
-DATABASE = '/tmp/alayatodo.db'
+DATABASE = './temp/alayatodo.db' #need to create temp/ directory
 DEBUG = True
 SECRET_KEY = 'development key'
 USERNAME = 'admin'
@@ -32,3 +32,4 @@ def teardown_request(exception):
 
 
 import alayatodo.views
+import alayatodo.models
